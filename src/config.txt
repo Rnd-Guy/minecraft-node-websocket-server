@@ -1,0 +1,8 @@
+// id is used to tell the server who sent which message. just needs a name that lets the host recognise it is you
+// host is the ip address or hostname of the host
+// port is an optional field and takes the value 3001 by default. note the other fields are mandatory however
+// players is mostly for self hosted games, as the server doesn't know how many players there are
+
+id=yourName
+host=localhost
+players=4

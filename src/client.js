@@ -45,11 +45,11 @@ const presets = [
   // other
   {name: "shake",   repeat: 1, commands: [cameraShake(targetAll)]},
   {name: "blind",   repeat: 1, commands: [blindPlayers(targetAllButOne)]},
-  {name: "poison",  repeat: 1, commands: [poisonPlayers(targetHalf)]},
+  {name: "poison",  repeat: 1, commands: [poisonPlayers(targetAll)]},
   {name: "hole",    repeat: 1, commands: [digHole(targetHalf, 10)]}, 
 
   // these ones send more than one command or are a little more technical
-  {name: "hp",      repeat: 1, commands: [setHp(targetHalf)]},
+  {name: "hp",      repeat: 1, commands: [setHp(targetHalf, 1)]},
   {name: "die",     repeat: 1, commands: [deathWarning(), 
                                           delayCommand(3000), 
                                           death(targetOne)]},
@@ -164,9 +164,9 @@ async function run() {
     await sendCommand(data);
 
   } else {
-    wss.send(JSON.stringify({name: "debug", repeat: 1, command: ""}));
+    wss.send(JSON.stringify({name: "debug", repeat: 1, command: "say debug message"}));
     console.log("Sent debug command to host. Please pass a minecraft command or a preset command as a command line argument")
-    console.log("Supported commands are: test" + presets.reduce((previous, current,) => previous + ", " + current.name, ""))
+    console.log("Supported commands are: random" + presets.reduce((previous, current,) => previous + ", " + current.name, ""))
   }
 }
 

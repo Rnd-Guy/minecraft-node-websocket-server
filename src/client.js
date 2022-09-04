@@ -1,19 +1,16 @@
 /**
- * client solo
- * For use with server solo as the only client connecting to it
+ * client
  * This contains commands with target selectors in order to target more than just the host
  * 
  * To run a preset command, pass in the name as a command line argument
  *   eg. node client-solo.js creeper
  * 
  * Full commands can also be ran. Note you must wrap this command with speech marks. You can use another parameter to send how many times the command should run
- *   eg. node client-solo.js "summon creeper" 5
+ *   eg. node client-solo.js "execute @a ~ ~ ~ summon creeper" 5 to spawn 5 creepers on all players
  * 
  * To tailor your experience, you can adjust the values in the COMMANDS CONFIG section, such as changing how many players a command targets
  */
 
-// import fs from 'fs'
-//import readline from 'readline'
 import { createReadStream } from 'fs'
 import { createInterface } from 'readline';
 import WebSocket from 'ws'
@@ -107,9 +104,9 @@ function digHole(targets = targetOne, depth = 10) {
 // we use tags in order to target random people with a sequence of commands
 function setHp(targets = targetHalf, hp = 1) {
   return async () => [`tag ${targets()} add hp`,
-                `effect %a[tag=hp] instant_health 1 255`, // fully heal target
-                `damage %a[tag=hp] ${20 - hp}`,           // then damage them
-                `tag %a[tag=hp] remove hp`
+                `effect @a[tag=hp] instant_health 1 255`, // fully heal target
+                `damage @a[tag=hp] ${20 - hp}`,           // then damage them
+                `tag @a[tag=hp] remove hp`
               ]
 }
 
@@ -209,9 +206,7 @@ async function readFile(name) {
 async function testAllCommands(timeBetweenCommands = 5000) {
   console.log("Running through all commands")
     for (let i of presets) {
-      //let data = getCommand(i.name);
       await sendCommand(i);
-      //wss.send(JSON.stringify(data))
       await delay(timeBetweenCommands)
     }
 }
@@ -220,7 +215,7 @@ async function testAllCommands(timeBetweenCommands = 5000) {
 function getCommand(name) {
   let data = presets.find(c => c.name.toUpperCase() === name.toUpperCase());
   if (!data) {
-    data = {name: "custom", repeat: 1, command: name}
+    data = {name: "custom", repeat: 1, commands: [async () => [name]]}
     if (process.argv.length > 3) {
       data.repeat = Number(process.argv[3])
     }
@@ -238,6 +233,7 @@ async function sendCommand(command) {
         console.log(data);
       }
       wss.send(JSON.stringify(data))
+      await delay(100)
     }
   }
 }

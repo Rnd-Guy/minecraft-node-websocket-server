@@ -1,3 +1,7 @@
+/**
+ * This file mostly exists for the sake of holding example code on how to read chat
+ */
+
 const WebSocket = require('ws')
 const uuid = require('uuid')        // For later use
 

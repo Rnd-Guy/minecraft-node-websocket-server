@@ -1,8 +1,9 @@
 // id is used to tell the server who sent which message. just needs a name that lets the host recognise it is you
 // host is the ip address or hostname of the host
 // port is an optional field and takes the value 3001 by default. note the other fields are mandatory however
-// players is mostly for self hosted games, as the server doesn't know how many players there are
+// players is an optional field that is used to calculate how many targets a command should hit (eg targetHalf with players=3 will target 2 people)
+//     note if the players field is defined here, this value takes precedence over the value defined inside the client.js script itself
+//     useful when running the client as an exe instead of via node
 
 id=yourName
 host=localhost
-players=4

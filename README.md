@@ -6,7 +6,7 @@ Note this is not a multiplayer world, just a server that can send messages to an
 
 Right now mostly supports one person running the server and client and connecting their minecraft to it. 
 
-> **Warning**
+> **Warning**  
 > To connect minecraft bedrock to a local server, you either need a loopback adapter or to run the following command in admin powershell. This is the same issue you will have if you tried to connect bedrock to a locally hosted dedicated server too. See [this wiki link](https://minecraft.fandom.com/wiki/Bedrock_Dedicated_Server#Connection) for more details:  
 > `CheckNetIsolation LoopbackExempt -a -n="Microsoft.MinecraftUWP_8wekyb3d8bbwe"`
 

@@ -11,9 +11,8 @@
  * To tailor your experience, you can adjust the values in the COMMANDS CONFIG section, such as changing how many players a command targets
  */
 
-import { createReadStream } from 'fs'
-import { createInterface } from 'readline';
 import WebSocket from 'ws'
+import { readFileSync } from 'fs';
 
 // ##############################
 // COMMANDS CONFIG
@@ -24,8 +23,21 @@ import WebSocket from 'ws'
 
 const statusDur = 10;
 const debug = true;
+
+const fileName = "config.txt";
+// config defaults (these will be overwritten by config.json)
+let host = "localhost";
+let port = "3001";
 let players = 5;
 
+readConfig();
+
+// @a = all players
+// @r[c=2] = two random people
+let targetAll = `@a`
+let targetAllButOne = `@r[c=${Math.max(players-1, 1)}]`
+let targetHalf = `@r[c=${Math.floor((players+1)/2)}]`
+let targetOne = `@r[c=1]`
 
 // name: the name of the command line argument to trigger this command
 // repeat: how many times the command should be repeated. this is mostly useful for summons, ie repeat 10 for spawnBees will spawn 10 bees
@@ -35,43 +47,28 @@ let players = 5;
 const presets = [
 
   // summons
-  {name: "bee",         repeat: 10,   commands: [spawnBees(targetAll)]},
-  {name: "creeper",     repeat: 1,    commands: [spawnCreepers(targetHalf)]},
-  {name: "lightning",   repeat: 1,    commands: [spawnLightning(targetHalf)]},
-  {name: "zombie",      repeat: 10,   commands: [spawnZombies(targetAll)]},
-  {name: "skeleton",    repeat: 10,   commands: [spawnSkeletons(targetAll)]},
-  {name: "ghast",       repeat: 3,    commands: [spawnGhasts(targetAll)]},
+  {name: "bee",         repeat: 1,   commands: spawnBees(targetAll)},
+  {name: "creeper",     repeat: 1,    commands: spawnCreepers(targetOne)},
+  {name: "lightning",   repeat: 1,    commands: spawnLightning(targetOne)},
+  {name: "zombie",      repeat: 1,   commands: spawnZombies(targetOne)},
+  {name: "skeleton",    repeat: 1,   commands: spawnSkeletons(targetOne)},
+  {name: "ghast",       repeat: 1,    commands: spawnGhasts(targetOne)},
 
   // other
-  {name: "shake",   repeat: 1, commands: [cameraShake(targetAll)]},
-  {name: "blind",   repeat: 1, commands: [blindPlayers(targetAllButOne)]},
-  {name: "poison",  repeat: 1, commands: [poisonPlayers(targetAll)]},
-  {name: "hole",    repeat: 1, commands: [digHole(targetHalf, 10)]}, 
+  {name: "shake",   repeat: 1, commands: cameraShake(targetAll)},
+  {name: "blind",   repeat: 1, commands: blindPlayers(targetAllButOne)},
+  {name: "poison",  repeat: 1, commands: poisonPlayers(targetOne)},
+  {name: "hole",    repeat: 1, commands: digHole(targetOne, 5)}, 
 
   // these ones send more than one command or are a little more technical
-  {name: "hp",      repeat: 1, commands: [setHp(targetHalf, 1)]},
+  {name: "hp",      repeat: 1, commands: setHp(targetOne, 5)},
   {name: "die",     repeat: 1, commands: [deathWarning(), 
-                                          delayCommand(3000), 
+                                          await delayCommand(3000), 
                                           death(targetOne)]},
-  
-  // there are two more commands that aren't listed here
-  // "test" runs through each command once
-  // "random" picks a random command from the above list
-]
-
-// ###########################
-// TARGET COMMANDS
-// pass these into the above commands list to decide how many people should be affected by the command
-// note pass these in without the trailing () eg do not do spawnBees(targetHalf()), as it will read the player variable before the config is read
-// ###########################
-
-// @a = all players
-// @r[c=2] = two random people
-
-function targetAll() {return `@a`}
-function targetAllButOne() {return `@r[c=${Math.max(players-1, 1)}]`}
-function targetHalf() {return `@r[c=${Math.floor((players+1)/2)}]`}
-function targetOne() {return `@r[c=1]`}
+    // there are two more commands that aren't listed here
+    // "test" runs through each command once
+    // "random" picks a random command from the above list
+  ]
 
 
 // #############################
@@ -79,63 +76,42 @@ function targetOne() {return `@r[c=1]`}
 // ~ ~ ~ = relative coordinates. ~1 ~1 ~1 means your position + 1 on all axes
 // ^ ^ ^ = facing coordinates. ^ ^ ^5 means 5 blocks in front of you
 // execute allows us to use a target selector when the command originally does not support one, eg for summon
-//
-// these return functions as we don't want to evaluate the player count until after we read the config.txt
-// all commands are async as there may be commands we wish to run after a delay
-// probably a bit overdone
 // ##############################
 
-function spawnBees(targets = targetAll)       {return async () => [`execute ${targets()} ~ ~ ~ summon bee`]}
-function spawnCreepers(targets = targetHalf)  {return async() => [`execute ${targets()} ^ ^1 ^1 summon creeper`]} // spawn creeper directly in front of player
-function spawnLightning(targets = targetHalf) {return async() => [`execute ${targets()} ~ ~ ~ summon lightning_bolt`]}
-function spawnZombies(targets = targetAll)    {return async() => [`execute ${targets()} ~ ~ ~ summon zombie`]}
-function spawnSkeletons(targets = targetAll)  {return async() => [`execute ${targets()} ~ ~ ~ summon skeleton`]}
-function spawnGhasts(targets = targetAll)     {return async() => [`execute ${targets()} ~ ~ ~ summon ghast`]}
+function spawnBees(targets = targetAll)       {return `execute ${targets} ~ ~ ~ summon bee`}
+function spawnCreepers(targets = targetHalf)  {return `execute ${targets} ^ ^1 ^1 summon creeper`} // spawn creeper directly in front of player
+function spawnLightning(targets = targetHalf) {return `execute ${targets} ~ ~ ~ summon lightning_bolt`}
+function spawnZombies(targets = targetAll)    {return `execute ${targets} ~ ~ ~ summon zombie`}
+function spawnSkeletons(targets = targetAll)  {return `execute ${targets} ~ ~ ~ summon skeleton`}
+function spawnGhasts(targets = targetAll)     {return `execute ${targets} ~ ~ ~ summon ghast`}
 
-function cameraShake(targets = targetAll)         {return async() => [`camerashake add ${targets()} 4 ${statusDur}`]}
-function blindPlayers(targets = targetAllButOne)  {return async() => [`effect ${targets()} blindness ${statusDur}`]}
-function poisonPlayers(targets = targetHalf)      {return async() => [`effect ${targetHalf()} poison ${statusDur}`]}
-function digHole(targets = targetOne, depth = 10) {
+function cameraShake(targets = targetAll)         {return `camerashake add ${targets} 4 ${statusDur}`}
+function blindPlayers(targets = targetAllButOne)  {return `effect ${targets} blindness ${statusDur}`}
+function poisonPlayers(targets = targetAll)      {return `effect ${targets} poison ${statusDur}`}
+function digHole(targets = targetHalf, depth = 5) {
   // 3 depth is harmless
   // 4 is half a heart, 5 is a whole heart, 10 is 3.5 hearts
-  return () => [`execute ${targets()} ~ ~ ~ fill ~-1 ~-1 ~-1 ~1 ~-${depth} ~1 air`]
+  return `execute ${targets} ~ ~ ~ fill ~-1 ~-1 ~-1 ~1 ~-${depth} ~1 air`
 }
 
 // we use tags in order to target random people with a sequence of commands
 function setHp(targets = targetHalf, hp = 1) {
-  return async () => [`tag ${targets()} add hp`,
+  return [`tag ${targets} add hp`,
                 `effect @a[tag=hp] instant_health 1 255`, // fully heal target
                 `damage @a[tag=hp] ${20 - hp}`,           // then damage them
                 `tag @a[tag=hp] remove hp`
               ]
 }
 
-function deathWarning() {return async () => [`say Omae wa mou shindeiru`]}
-function death(targets = targetOne) {return async () => [`kill ${targets()}`]}
+function deathWarning() {return `say Omae wa mou shindeiru`}
+function death(targets = targetOne) {return `kill ${targets}`}
 
 // this can be passed inside the commands array to send commands after a delay
-function delayCommand(timer = 10000) {return async () => {await delay(timer); return ``}}
-
-// #################
-// SETUP
-// ##################
-
-const fileName = "config.txt";
-let host = null;
-let port = "3001";
-let id = "default"
-
-await readFile(fileName);
-
-if (host == null) {
-  console.log("Error, need a file called config.txt with host=hostname contained within");
-  process.exit();
-}
+async function delayCommand(timer = 10000) {return async () => {await delay(timer); return ``}}
 
 // ###########################
 // CONNECT AND SEND MESSAGE
 // ###########################
-
 
 const wss = new WebSocket(`ws://${host}:${port}`)
   
@@ -177,31 +153,6 @@ async function run() {
 async function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 } 
-  
-async function readFile(name) {
-  let filePath = process.cwd() + "\\" + name;
-  let reader = createInterface({
-    input: createReadStream(filePath),
-  })
-
-  for await (const line of reader) {
-    let split = line.split("=");
-    switch (split[0]) {
-      case "host":
-        host = split[1];
-        break;
-      case "port":
-        port = split[1];
-        break;
-      case "id":
-        id = split[1];
-        break;
-      case "players":
-        players = Number(split[1]);
-        break;
-    }
-  }
-}
 
 async function testAllCommands(timeBetweenCommands = 5000) {
   console.log("Running through all commands")
@@ -225,15 +176,30 @@ function getCommand(name) {
 
 async function sendCommand(command) {
   // commands are evaluated one by one, so that we can pass in delay commands 
-  for (let i = 0; i < command.commands.length; ++i) {
-    let messages = [...(await command.commands[i]())];
-    for (let j = 0; j < messages.length; ++j) {
-      let data = {name: command.name, repeat: command.repeat, command: messages[j]}
-      if (debug) {
-        console.log(data);
-      }
-      wss.send(JSON.stringify(data))
-      await delay(100)
+  if (Array.isArray(command.commands)) {
+    for (let i = 0; i < command.commands.length; ++i) {
+      await sendCommandInternal({...command, commands: command.commands[i]});
     }
+  } else {
+    await sendCommandInternal(command)
   }
+}
+
+async function sendCommandInternal(command) {
+  let c = command.commands;
+  let message = c;
+  if (typeof c === "function") {
+    message = await c();
+  }
+
+  let data = {name: command.name, repeat: command.repeat, command: message};
+  if (message !== '') {
+    wss.send(JSON.stringify(data));
+    await delay(100);
+  }
+}
+
+function readConfig() {
+  let config = JSON.parse(readFileSync("./config.json"));
+  ({host = host, port = port, players = players} = config);
 }

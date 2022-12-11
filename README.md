@@ -51,7 +51,7 @@ node client.js "execute @a ~ ~ ~ summon bee" 10
 
 The top of `client.js` contains the list of preset commands that you can run.
 
-## TODO
-* Clean up client.js (too many layered functions)
+## TODO (but probably wont do)
+* Clean up client.js (too many layered functions, did a bit of clean up now though)
 * Update documentation with command list
-* Create a release using pkg
+* Create a release using pkg so its easier to use
